@@ -5,6 +5,8 @@ export interface BrandSettings {
   theme: "light" | "dark";
 }
 
+const STORAGE_KEY = "ledgerlySettings";
+
 const DEFAULT_SETTINGS: BrandSettings = {
   brandName: "Ledgerly",
   logoUrl: "",
@@ -32,62 +34,72 @@ const applyThemeClass = (theme: "light" | "dark") => {
   }
 };
 
+const persistSettings = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.warn("Unable to persist settings:", error);
+  }
+};
+
+const loadSettingsFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as Partial<BrandSettings>;
+      settings = { ...DEFAULT_SETTINGS, ...parsed };
+    } else {
+      settings = { ...DEFAULT_SETTINGS };
+    }
+  } catch (error) {
+    settings = { ...DEFAULT_SETTINGS };
+    console.warn("Unable to load saved settings:", error);
+  }
+
+  applyPrimaryColor(settings.primaryColor);
+  applyThemeClass(settings.theme);
+  notifySubscribers();
+};
+
 export const settingsStore = {
   getSettings: (): BrandSettings => ({ ...settings }),
 
   updateBrandName: (name: string) => {
     settings.brandName = name;
-    localStorage.setItem("brandName", name);
+    persistSettings();
     notifySubscribers();
   },
 
   updateLogoUrl: (url: string) => {
     settings.logoUrl = url;
-    localStorage.setItem("logoUrl", url);
+    persistSettings();
     notifySubscribers();
   },
 
   updatePrimaryColor: (color: string) => {
     settings.primaryColor = color;
-    localStorage.setItem("primaryColor", color);
+    persistSettings();
     applyPrimaryColor(color);
     notifySubscribers();
   },
 
   updateTheme: (theme: "light" | "dark") => {
     settings.theme = theme;
-    localStorage.setItem("theme", theme);
+    persistSettings();
     applyThemeClass(theme);
     notifySubscribers();
   },
 
   resetToDefaults: () => {
     settings = { ...DEFAULT_SETTINGS };
-    localStorage.removeItem("brandName");
-    localStorage.removeItem("logoUrl");
-    localStorage.removeItem("primaryColor");
-    localStorage.removeItem("theme");
+    localStorage.removeItem(STORAGE_KEY);
     applyPrimaryColor(settings.primaryColor);
     applyThemeClass(settings.theme);
     notifySubscribers();
   },
 
   loadSettings: () => {
-    const savedBrandName = localStorage.getItem("brandName");
-    const savedLogoUrl = localStorage.getItem("logoUrl");
-    const savedColor = localStorage.getItem("primaryColor");
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-
-    settings = { ...DEFAULT_SETTINGS };
-
-    if (savedBrandName) settings.brandName = savedBrandName;
-    if (savedLogoUrl) settings.logoUrl = savedLogoUrl;
-    if (savedColor) settings.primaryColor = savedColor;
-    if (savedTheme) settings.theme = savedTheme;
-
-    applyPrimaryColor(settings.primaryColor);
-    applyThemeClass(settings.theme);
-    notifySubscribers();
+    loadSettingsFromStorage();
   },
 
   subscribe: (callback: (settings: BrandSettings) => void) => {

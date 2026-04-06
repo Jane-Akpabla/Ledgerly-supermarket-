@@ -12,6 +12,7 @@ import {
   Receipt,
   Bell,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 } from "@/components/notifications-panel";
 import { notificationsStore } from "@/lib/notifications-store";
 import { settingsStore } from "@/lib/settings-store";
+import { supabase } from "@/lib/supabase";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -32,6 +34,7 @@ const navItems = [
 
 export function DesktopSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [brandName, setBrandName] = useState("Ledgerly");
@@ -55,6 +58,13 @@ export function DesktopSidebar() {
     const unsubscribe = settingsStore.subscribe(handleSettingsChange);
     return () => unsubscribe();
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setBrandName("Ledgerly");
+    setLogoUrl("");
+    router.push("/login");
+  };
 
   useEffect(() => {
     const updateUnreadCount = () => {
@@ -127,7 +137,7 @@ export function DesktopSidebar() {
         </div>
 
         {/* Add Cheque Button */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className="border-t border-sidebar-border p-4 space-y-3">
           <Button
             asChild
             className="w-full bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
@@ -136,6 +146,16 @@ export function DesktopSidebar() {
               <Plus className="mr-2 h-4 w-4" />
               Add New Cheque
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-between"
+            onClick={handleSignOut}
+          >
+            <div className="flex items-center gap-2">
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
+            </div>
           </Button>
         </div>
       </aside>

@@ -36,13 +36,16 @@ export default function SettingsPage() {
   }, []);
 
   const handleBrandNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings({ ...settings, brandName: e.target.value });
+    const nextBrandName = e.target.value;
+    setSettings({ ...settings, brandName: nextBrandName });
+    settingsStore.updateBrandName(nextBrandName);
   };
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     setSettings({ ...settings, primaryColor: color });
     document.documentElement.style.setProperty("--color-primary", color);
+    settingsStore.updatePrimaryColor(color);
   };
 
   const handleThemeChange = (theme: "light" | "dark") => {
@@ -52,6 +55,7 @@ export default function SettingsPage() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    settingsStore.updateTheme(theme);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +66,7 @@ export default function SettingsPage() {
         const dataUrl = event.target?.result as string;
         setLogoPreviewUrl(dataUrl);
         setSettings({ ...settings, logoUrl: dataUrl });
+        settingsStore.updateLogoUrl(dataUrl);
       };
       reader.readAsDataURL(file);
     }
@@ -180,12 +185,7 @@ export default function SettingsPage() {
                     <input
                       type="color"
                       value={settings.primaryColor}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          primaryColor: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleColorChange(e)}
                       className="h-10 w-14 rounded border border-input cursor-pointer"
                     />
                   </div>
