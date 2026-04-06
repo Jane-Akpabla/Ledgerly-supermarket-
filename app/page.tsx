@@ -22,7 +22,7 @@ export default function DashboardPage() {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     const day = date.getDay();
-    
+
     // If Saturday (6), add 2 days to get Monday
     // If Sunday (0), add 1 day to get Monday
     if (day === 6) {
@@ -41,7 +41,9 @@ export default function DashboardPage() {
     .filter((c) => {
       const clearDate = new Date(c.clearingDate);
       clearDate.setHours(0, 0, 0, 0);
-      return clearDate.getTime() === displayDate.getTime() && c.status === "pending";
+      return (
+        clearDate.getTime() === displayDate.getTime() && c.status === "pending"
+      );
     })
     .reduce((sum, c) => sum + c.amount, 0);
 
@@ -52,12 +54,13 @@ export default function DashboardPage() {
       now.setHours(0, 0, 0, 0);
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
+
       const clearDate = new Date(c.clearingDate);
       clearDate.setHours(0, 0, 0, 0);
-      
+
       return (
-        (clearDate.getTime() === now.getTime() || clearDate.getTime() === tomorrow.getTime()) &&
+        (clearDate.getTime() === now.getTime() ||
+          clearDate.getTime() === tomorrow.getTime()) &&
         c.status === "pending"
       );
     })
