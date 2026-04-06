@@ -62,11 +62,13 @@ export const suppliers: Supplier[] = [];
 export const avgDailySales = 75000;
 
 // Helper functions
-export function getTotalClearingToday(): number {
+export function getTotalClearingToday(
+  chequesToUse: Cheque[] = cheques,
+): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  return cheques
+  return chequesToUse
     .filter((c) => {
       const clearDate = getClearingDate(c.issueDate);
       clearDate.setHours(0, 0, 0, 0);
@@ -75,12 +77,14 @@ export function getTotalClearingToday(): number {
     .reduce((sum, c) => sum + c.amount, 0);
 }
 
-export function getTotalClearingTomorrow(): number {
+export function getTotalClearingTomorrow(
+  chequesToUse: Cheque[] = cheques,
+): number {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
 
-  return cheques
+  return chequesToUse
     .filter((c) => {
       const clearDate = getClearingDate(c.issueDate);
       clearDate.setHours(0, 0, 0, 0);
@@ -91,20 +95,24 @@ export function getTotalClearingTomorrow(): number {
     .reduce((sum, c) => sum + c.amount, 0);
 }
 
-export function getChequesClearingTomorrowCount(): number {
+export function getChequesClearingTomorrowCount(
+  chequesToUse: Cheque[] = cheques,
+): number {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
 
-  return cheques.filter((c) => {
+  return chequesToUse.filter((c) => {
     const clearDate = getClearingDate(c.issueDate);
     clearDate.setHours(0, 0, 0, 0);
     return clearDate.getTime() === tomorrow.getTime() && c.status === "pending";
   }).length;
 }
 
-export function getTotalSupplierDebt(): number {
-  return suppliers.reduce((sum, s) => sum + s.totalDebt, 0);
+export function getTotalSupplierDebt(
+  suppliersToUse: Supplier[] = suppliers,
+): number {
+  return suppliersToUse.reduce((sum, s) => sum + s.totalDebt, 0);
 }
 
 // Get the next working day (skip weekends)
@@ -152,11 +160,13 @@ export function getNextWorkingDays(count: number): Date[] {
   return result;
 }
 
-export function getUpcomingChequeCalendar(): DailyTotal[] {
+export function getUpcomingChequeCalendar(
+  chequesToUse: Cheque[] = cheques,
+): DailyTotal[] {
   const workingDays = getNextWorkingDays(5);
 
   return workingDays.map((date) => {
-    const dayCheques = cheques.filter((c) => {
+    const dayCheques = chequesToUse.filter((c) => {
       const clearDate = getClearingDate(c.issueDate);
       clearDate.setHours(0, 0, 0, 0);
       return clearDate.getTime() === date.getTime() && c.status === "pending";

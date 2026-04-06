@@ -47,7 +47,21 @@ const fetchCheques = async (): Promise<Cheque[]> => {
   }
 };
 
-const fetchSuppliers = () => Promise.resolve(suppliersStore);
+const fetchSuppliers = async (): Promise<Supplier[]> => {
+  if (!supabase) {
+    console.warn("Supabase not initialized. Using local supplier fallback.");
+    return suppliersStore;
+  }
+
+  const { data, error } = await supabase.from("suppliers").select("*");
+
+  if (error) {
+    console.error("Error fetching suppliers from Supabase:", error);
+    return suppliersStore;
+  }
+
+  return (data as Supplier[]) || suppliersStore;
+};
 
 // Hooks for data fetching
 export function useCheques() {

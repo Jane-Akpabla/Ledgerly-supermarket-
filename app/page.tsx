@@ -75,8 +75,8 @@ export default function DashboardPage() {
     return clearDate.getTime() === tomorrow.getTime() && c.status === "pending";
   }).length;
 
-  const totalSupplierDebt = getTotalSupplierDebt();
-  const calendar = getUpcomingChequeCalendar();
+  const totalSupplierDebt = getTotalSupplierDebt(suppliers);
+  const calendar = getUpcomingChequeCalendar(cheques);
 
   if (chequesLoading || suppliersLoading) {
     return (
