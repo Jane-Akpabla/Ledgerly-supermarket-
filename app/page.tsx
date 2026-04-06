@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { CashCheckWarning } from "@/components/cash-check-warning";

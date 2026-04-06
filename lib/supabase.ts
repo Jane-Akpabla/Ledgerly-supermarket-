@@ -3,14 +3,25 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-// Create client only if credentials are available
-let supabaseClient: ReturnType<typeof createClient> | null = null;
+// Create dummy client for build-time when env vars are missing
+const createDummyClient = () => {
+  // Use placeholder values that won't cause errors during build
+  return createClient(
+    "https://dummy.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy"
+  );
+};
 
-if (supabaseUrl && supabaseAnonKey) {
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-}
+// Create client with real credentials if available, otherwise use dummy
+const supabaseClient = (() => {
+  if (supabaseUrl && supabaseAnonKey) {
+    return createClient(supabaseUrl, supabaseAnonKey);
+  }
+  // Return dummy client for build time
+  return createDummyClient();
+})();
 
-export const supabase = supabaseClient!;
+export const supabase = supabaseClient;
 
 // Type for Cheque from database
 export interface ChequeRow {
