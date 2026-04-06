@@ -20,3 +20,33 @@ export interface ChequeRow {
   created_at?: string | null;
   updated_at?: string | null;
 }
+
+export interface SupplierRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  location: string | null;
+  products_supplied: string[] | null;
+  total_debt: string | number;
+  oldest_unpaid_bill_days: number;
+  trust_score: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface NotificationRow {
+  id: string;
+  type:
+    | "supplier_added"
+    | "supplier_updated"
+    | "supplier_deleted"
+    | "cheque_added"
+    | "cheque_cleared"
+    | "cheque_bounced"
+    | "cheque_stopped";
+  title: string;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  created_at?: string | null;
+}

@@ -1,8 +1,9 @@
 "use client";
 
 import useSWR, { mutate } from "swr";
-import { supabase, type ChequeRow } from "./supabase";
+import { supabase, type ChequeRow, type SupplierRow } from "./supabase";
 import { suppliers, type Supplier, type Cheque } from "./data";
+import { notificationsStore } from "./notifications-store";
 
 // In-memory suppliers store (can be migrated to Supabase later)
 let suppliersStore = [...suppliers];
@@ -19,6 +20,20 @@ function convertRowToCheque(row: ChequeRow): Cheque {
     issueDate: new Date(row.issue_date),
     clearingDate: new Date(row.clearing_date),
     status: row.status,
+  };
+}
+
+// Helper to convert Supabase SupplierRow to Supplier type
+function convertRowToSupplier(row: SupplierRow): Supplier {
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone ?? "",
+    location: row.location ?? "",
+    productsSupplied: row.products_supplied ?? [],
+    totalDebt: Number(row.total_debt ?? "0"),
+    oldestUnpaidBillDays: row.oldest_unpaid_bill_days,
+    trustScore: row.trust_score,
   };
 }
 
@@ -60,7 +75,7 @@ const fetchSuppliers = async (): Promise<Supplier[]> => {
     return suppliersStore;
   }
 
-  return (data as Supplier[]) || suppliersStore;
+  return (data as SupplierRow[]).map(convertRowToSupplier) || suppliersStore;
 };
 
 // Hooks for data fetching
@@ -103,6 +118,40 @@ export async function updateChequeStatus(id: string, status: Cheque["status"]) {
     console.error("Error updating cheque status:", error);
     return;
   }
+
+  // Add notification based on status
+  const statusMessages: Record<
+    Cheque["status"],
+    { type: any; title: string; description: string }
+  > = {
+    cleared: {
+      type: "cheque_cleared",
+      title: "Cheque Cleared",
+      description: "A cheque has been successfully cleared.",
+    },
+    bounced: {
+      type: "cheque_bounced",
+      title: "Cheque Bounced",
+      description: "A cheque has bounced. Take immediate action.",
+    },
+    stopped: {
+      type: "cheque_stopped",
+      title: "Cheque Stopped",
+      description: "A cheque payment has been stopped.",
+    },
+    pending: {
+      type: "cheque_added",
+      title: "Cheque Status Updated",
+      description: "A cheque status has been updated to pending.",
+    },
+  };
+
+  const message = statusMessages[status];
+  await notificationsStore.addNotification({
+    type: message.type,
+    title: message.title,
+    description: message.description,
+  });
 
   await mutate("cheques");
 }
@@ -155,16 +204,129 @@ export async function addCheque(cheque: Omit<Cheque, "id">) {
     return null;
   }
 
+  const result = data?.[0] ? convertRowToCheque(data[0] as ChequeRow) : null;
+
+  if (result) {
+    await notificationsStore.addNotification({
+      type: "cheque_added",
+      title: "New Cheque Added",
+      description: `Cheque ${cheque.chequeNo} from ${cheque.supplier} has been added.`,
+    });
+  }
+
   await mutate("cheques");
-  return data?.[0] ? convertRowToCheque(data[0] as ChequeRow) : null;
+  return result;
 }
 
 export async function addSupplier(supplier: Omit<Supplier, "id">) {
-  const newSupplier: Supplier = {
-    ...supplier,
-    id: String(suppliersStore.length + 1),
-  };
-  suppliersStore = [...suppliersStore, newSupplier];
+  if (!supabase) {
+    console.error("Supabase not initialized");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("suppliers")
+    .insert([
+      {
+        name: supplier.name,
+        phone: supplier.phone,
+        location: supplier.location,
+        products_supplied: supplier.productsSupplied,
+        total_debt: supplier.totalDebt,
+        oldest_unpaid_bill_days: supplier.oldestUnpaidBillDays,
+        trust_score: supplier.trustScore,
+      },
+    ])
+    .select();
+
+  if (error) {
+    console.error("Error adding supplier:", error);
+    return null;
+  }
+
+  const result = data?.[0]
+    ? convertRowToSupplier(data[0] as SupplierRow)
+    : null;
+
+  if (result) {
+    await notificationsStore.addNotification({
+      type: "supplier_added",
+      title: "New Supplier Added",
+      description: `${supplier.name} has been added to your supplier list.`,
+    });
+  }
+
   await mutate("suppliers");
-  return newSupplier;
+  return result;
+}
+
+export async function updateSupplier(
+  id: string,
+  supplier: Partial<Omit<Supplier, "id">>,
+) {
+  if (!supabase) {
+    console.error("Supabase not initialized");
+    return null;
+  }
+
+  const updateData: Record<string, any> = {};
+  if (supplier.name !== undefined) updateData.name = supplier.name;
+  if (supplier.phone !== undefined) updateData.phone = supplier.phone;
+  if (supplier.location !== undefined) updateData.location = supplier.location;
+  if (supplier.productsSupplied !== undefined)
+    updateData.products_supplied = supplier.productsSupplied;
+  if (supplier.totalDebt !== undefined)
+    updateData.total_debt = supplier.totalDebt;
+  if (supplier.oldestUnpaidBillDays !== undefined)
+    updateData.oldest_unpaid_bill_days = supplier.oldestUnpaidBillDays;
+  if (supplier.trustScore !== undefined)
+    updateData.trust_score = supplier.trustScore;
+
+  const { data, error } = await supabase
+    .from("suppliers")
+    .update(updateData)
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    console.error("Error updating supplier:", error);
+    return null;
+  }
+
+  const result = data?.[0]
+    ? convertRowToSupplier(data[0] as SupplierRow)
+    : null;
+
+  if (result) {
+    await notificationsStore.addNotification({
+      type: "supplier_updated",
+      title: "Supplier Updated",
+      description: `${result.name} information has been updated.`,
+    });
+  }
+
+  await mutate("suppliers");
+  return result;
+}
+
+export async function deleteSupplier(id: string) {
+  if (!supabase) {
+    console.error("Supabase not initialized");
+    return;
+  }
+
+  const { error } = await supabase.from("suppliers").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting supplier:", error);
+    return;
+  }
+
+  await notificationsStore.addNotification({
+    type: "supplier_deleted",
+    title: "Supplier Deleted",
+    description: "A supplier has been removed from your list.",
+  });
+
+  await mutate("suppliers");
 }

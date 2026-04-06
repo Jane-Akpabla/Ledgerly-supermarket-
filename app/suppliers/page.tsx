@@ -6,6 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Search,
   Phone,
@@ -15,8 +24,17 @@ import {
   Shield,
   ArrowUpDown,
   Users,
+  Edit,
+  Trash2,
+  Plus,
 } from "lucide-react";
-import { useSuppliers } from "@/lib/store";
+import {
+  useSuppliers,
+  updateSupplier,
+  deleteSupplier,
+  addSupplier,
+} from "@/lib/store";
+
 import { formatCurrency, type Supplier } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +45,11 @@ export default function SuppliersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("priority");
   const [showHighPriorityOnly, setShowHighPriorityOnly] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const processedSuppliers = useMemo(() => {
     let filtered = suppliers.filter((supplier) => {
@@ -34,7 +57,7 @@ export default function SuppliersPage() {
         supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         supplier.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
         supplier.productsSupplied.some((p) =>
-          p.toLowerCase().includes(searchQuery.toLowerCase())
+          p.toLowerCase().includes(searchQuery.toLowerCase()),
         );
 
       if (showHighPriorityOnly) {
@@ -51,7 +74,8 @@ export default function SuppliersPage() {
           // High priority (unpaid > 30 days) first, then by oldest unpaid days
           const aHighPriority = a.oldestUnpaidBillDays > 30 ? 1 : 0;
           const bHighPriority = b.oldestUnpaidBillDays > 30 ? 1 : 0;
-          if (bHighPriority !== aHighPriority) return bHighPriority - aHighPriority;
+          if (bHighPriority !== aHighPriority)
+            return bHighPriority - aHighPriority;
           return b.oldestUnpaidBillDays - a.oldestUnpaidBillDays;
         case "name":
           return a.name.localeCompare(b.name);
@@ -68,7 +92,7 @@ export default function SuppliersPage() {
   }, [suppliers, searchQuery, sortBy, showHighPriorityOnly]);
 
   const highPriorityCount = suppliers.filter(
-    (s) => s.oldestUnpaidBillDays > 30
+    (s) => s.oldestUnpaidBillDays > 30,
   ).length;
 
   return (
@@ -84,15 +108,24 @@ export default function SuppliersPage() {
               Manage your supplier relationships
             </p>
           </div>
-          {highPriorityCount > 0 && (
-            <Badge
-              variant="outline"
-              className="flex items-center gap-1.5 border-destructive/50 bg-destructive/10 text-destructive self-start sm:self-auto"
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {highPriorityCount > 0 && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1.5 border-destructive/50 bg-destructive/10 text-destructive self-start"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {highPriorityCount} High Priority
+              </Badge>
+            )}
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              className="w-full sm:w-auto gap-2"
             >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {highPriorityCount} High Priority
-            </Badge>
-          )}
+              <Plus className="h-4 w-4" />
+              Add Supplier
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -137,7 +170,7 @@ export default function SuppliersPage() {
             label="Avg Trust Score"
             value={`${Math.round(
               suppliers.reduce((sum, s) => sum + s.trustScore, 0) /
-                suppliers.length
+                suppliers.length,
             )}%`}
             icon={<Shield className="h-4 w-4" />}
             className="text-success"
@@ -145,7 +178,7 @@ export default function SuppliersPage() {
           <MiniStat
             label="Total Debt"
             value={formatCurrency(
-              suppliers.reduce((sum, s) => sum + s.totalDebt, 0)
+              suppliers.reduce((sum, s) => sum + s.totalDebt, 0),
             )}
             icon={<Package className="h-4 w-4" />}
           />
@@ -168,12 +201,214 @@ export default function SuppliersPage() {
             </Card>
           ) : (
             processedSuppliers.map((supplier) => (
-              <SupplierCard key={supplier.id} supplier={supplier} />
+              <SupplierCard
+                key={supplier.id}
+                supplier={supplier}
+                onEdit={(supplier) => {
+                  setEditingSupplier(supplier);
+                  setIsEditDialogOpen(true);
+                }}
+                onDelete={(id) => {
+                  setDeletingId(id);
+                  setIsDeleteDialogOpen(true);
+                }}
+              />
             ))
           )}
         </div>
+
+        {/* Edit Supplier Dialog */}
+        <SupplierEditModal
+          supplier={editingSupplier}
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSave={async (updatedSupplier) => {
+            if (editingSupplier) {
+              await updateSupplier(editingSupplier.id, updatedSupplier);
+              setIsEditDialogOpen(false);
+              setEditingSupplier(null);
+            }
+          }}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Supplier</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this supplier? This action
+                cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setDeletingId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (deletingId) {
+                    await deleteSupplier(deletingId);
+                    setIsDeleteDialogOpen(false);
+                    setDeletingId(null);
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Supplier Dialog */}
+        <AddSupplierModal
+          isOpen={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onSave={async (newSupplier) => {
+            await addSupplier(newSupplier);
+            setIsAddDialogOpen(false);
+          }}
+        />
       </div>
     </DashboardLayout>
+  );
+}
+
+interface SupplierEditModalProps {
+  supplier: Supplier | null;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (supplier: Partial<Omit<Supplier, "id">>) => Promise<void>;
+}
+
+function SupplierEditModal({
+  supplier,
+  isOpen,
+  onOpenChange,
+  onSave,
+}: SupplierEditModalProps) {
+  const [formData, setFormData] = useState<Partial<Omit<Supplier, "id">>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  useMemo(() => {
+    if (supplier) {
+      setFormData(supplier);
+    }
+  }, [supplier, isOpen]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave(formData);
+    setIsSaving(false);
+  };
+
+  if (!supplier) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Supplier</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Supplier Name</Label>
+            <Input
+              id="name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder="Supplier name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              value={formData.phone || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+              placeholder="Phone number"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              value={formData.location || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              placeholder="Location"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="debt">Total Debt (GH₵)</Label>
+            <Input
+              id="debt"
+              type="number"
+              value={formData.totalDebt || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  totalDebt: parseFloat(e.target.value) || 0,
+                })
+              }
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="unpaidDays">Oldest Unpaid (Days)</Label>
+            <Input
+              id="unpaidDays"
+              type="number"
+              value={formData.oldestUnpaidBillDays || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  oldestUnpaidBillDays: parseInt(e.target.value) || 0,
+                })
+              }
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="trust">Trust Score (%)</Label>
+            <Input
+              id="trust"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.trustScore || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  trustScore: parseInt(e.target.value) || 0,
+                })
+              }
+              placeholder="0-100"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -233,14 +468,22 @@ function MiniStat({
   );
 }
 
-function SupplierCard({ supplier }: { supplier: Supplier }) {
+function SupplierCard({
+  supplier,
+  onEdit,
+  onDelete,
+}: {
+  supplier: Supplier;
+  onEdit: (supplier: Supplier) => void;
+  onDelete: (id: string) => void;
+}) {
   const isHighPriority = supplier.oldestUnpaidBillDays > 30;
 
   return (
     <Card
       className={cn(
         "overflow-hidden transition-all hover:shadow-md",
-        isHighPriority && "border-destructive/50"
+        isHighPriority && "border-destructive/50",
       )}
     >
       <CardContent className="p-0">
@@ -253,7 +496,7 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
           <div className="flex flex-1 flex-col gap-4 p-4">
             {/* Header */}
             <div className="flex items-start justify-between">
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground">
                     {supplier.name}
@@ -283,8 +526,30 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
                 </div>
               </div>
 
-              {/* Trust Score */}
-              <div className="flex flex-col items-end">
+              {/* Action Buttons */}
+              <div className="flex gap-2 ml-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(supplier)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(supplier.id)}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Trust Score */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <Shield
                     className={cn(
@@ -292,8 +557,8 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
                       supplier.trustScore >= 80
                         ? "text-success"
                         : supplier.trustScore >= 60
-                        ? "text-warning"
-                        : "text-destructive"
+                          ? "text-warning"
+                          : "text-destructive",
                     )}
                   />
                   <span
@@ -302,29 +567,37 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
                       supplier.trustScore >= 80
                         ? "text-success"
                         : supplier.trustScore >= 60
-                        ? "text-warning"
-                        : "text-destructive"
+                          ? "text-warning"
+                          : "text-destructive",
                     )}
                   >
                     {supplier.trustScore}%
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground">Trust Score</span>
+                <span className="text-xs text-muted-foreground">
+                  Trust Score
+                </span>
               </div>
             </div>
 
             {/* Products */}
             <div className="flex flex-wrap gap-1.5">
-              {supplier.productsSupplied.map((product) => (
-                <Badge
-                  key={product}
-                  variant="secondary"
-                  className="text-xs font-normal"
-                >
-                  <Package className="mr-1 h-3 w-3" />
-                  {product}
-                </Badge>
-              ))}
+              {supplier.productsSupplied?.length > 0 ? (
+                supplier.productsSupplied.map((product) => (
+                  <Badge
+                    key={product}
+                    variant="secondary"
+                    className="text-xs font-normal"
+                  >
+                    <Package className="mr-1 h-3 w-3" />
+                    {product}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  No products listed
+                </span>
+              )}
             </div>
 
             {/* Footer Stats */}
@@ -340,7 +613,7 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
                 <span
                   className={cn(
                     "font-semibold",
-                    isHighPriority ? "text-destructive" : "text-foreground"
+                    isHighPriority ? "text-destructive" : "text-foreground",
                   )}
                 >
                   {supplier.oldestUnpaidBillDays} days
@@ -351,5 +624,215 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface AddSupplierModalProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (supplier: Omit<Supplier, "id">) => Promise<void>;
+}
+
+function AddSupplierModal({
+  isOpen,
+  onOpenChange,
+  onSave,
+}: AddSupplierModalProps) {
+  const [formData, setFormData] = useState<Omit<Supplier, "id">>({
+    name: "",
+    phone: "",
+    location: "",
+    productsSupplied: [],
+    totalDebt: 0,
+    oldestUnpaidBillDays: 0,
+    trustScore: 50,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [productsInput, setProductsInput] = useState("");
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.location) {
+      alert("Please fill in supplier name and location");
+      return;
+    }
+    setIsSaving(true);
+    await onSave(formData);
+    setIsSaving(false);
+    // Reset form
+    setFormData({
+      name: "",
+      phone: "",
+      location: "",
+      productsSupplied: [],
+      totalDebt: 0,
+      oldestUnpaidBillDays: 0,
+      trustScore: 50,
+    });
+    setProductsInput("");
+  };
+
+  const handleAddProduct = () => {
+    if (productsInput.trim()) {
+      setFormData({
+        ...formData,
+        productsSupplied: [...formData.productsSupplied, productsInput.trim()],
+      });
+      setProductsInput("");
+    }
+  };
+
+  const handleRemoveProduct = (index: number) => {
+    setFormData({
+      ...formData,
+      productsSupplied: formData.productsSupplied.filter((_, i) => i !== index),
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add New Supplier</DialogTitle>
+          <DialogDescription>
+            Enter the details for the new supplier
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-2">
+            <Label htmlFor="add-name">Supplier Name *</Label>
+            <Input
+              id="add-name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder="Supplier name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-phone">Phone</Label>
+            <Input
+              id="add-phone"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+              placeholder="Phone number"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-location">Location *</Label>
+            <Input
+              id="add-location"
+              value={formData.location}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              placeholder="Location"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Products Supplied</Label>
+            <div className="flex gap-2">
+              <Input
+                value={productsInput}
+                onChange={(e) => setProductsInput(e.target.value)}
+                placeholder="Enter product name"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddProduct();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddProduct}
+                size="sm"
+              >
+                Add
+              </Button>
+            </div>
+            {formData.productsSupplied.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.productsSupplied.map((product, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="cursor-pointer"
+                  >
+                    {product}
+                    <button
+                      className="ml-1 hover:text-destructive"
+                      onClick={() => handleRemoveProduct(index)}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-debt">Total Debt (GH₵)</Label>
+            <Input
+              id="add-debt"
+              type="number"
+              value={formData.totalDebt}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  totalDebt: parseFloat(e.target.value) || 0,
+                })
+              }
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-unpaidDays">Oldest Unpaid (Days)</Label>
+            <Input
+              id="add-unpaidDays"
+              type="number"
+              value={formData.oldestUnpaidBillDays}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  oldestUnpaidBillDays: parseInt(e.target.value) || 0,
+                })
+              }
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-trust">Trust Score (%) - Default 50</Label>
+            <Input
+              id="add-trust"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.trustScore}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  trustScore: parseInt(e.target.value) || 50,
+                })
+              }
+              placeholder="0-100"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Adding..." : "Add Supplier"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

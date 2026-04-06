@@ -27,17 +27,21 @@ import {
   MessageCircle,
   Check,
 } from "lucide-react";
-import { getClearingDate, suppliers } from "@/lib/data";
-import { addCheque } from "@/lib/store";
+import { getClearingDate } from "@/lib/data";
+import { addCheque, useSuppliers } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const banks = [
-  "State Bank",
-  "National Bank",
-  "City Bank",
-  "Rural Bank",
-  "Commercial Bank",
-  "United Bank",
+  "Absa Bank Ghana",
+  "GT Bank",
+  "Stanbic Bank",
+  "Ecobank",
+  "Zenith Bank",
+  "Adom Finance",
+  "First National Bank",
+  "Access Bank",
+  "Barclays Bank",
+  "UBA Ghana",
 ];
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -59,6 +63,7 @@ const years = [2026, 2027, 2028];
 
 export default function AddChequePage() {
   const router = useRouter();
+  const { suppliers, isLoading } = useSuppliers();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -209,11 +214,21 @@ export default function AddChequePage() {
                       <SelectValue placeholder="Select supplier" />
                     </SelectTrigger>
                     <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                        </SelectItem>
-                      ))}
+                      {isLoading ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          Loading suppliers...
+                        </div>
+                      ) : suppliers.length > 0 ? (
+                        suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No suppliers found
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   {selectedSupplier && (

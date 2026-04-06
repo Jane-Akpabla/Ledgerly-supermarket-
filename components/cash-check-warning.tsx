@@ -20,12 +20,12 @@ export function CashCheckWarning({
 
   if (!isOverLimit) {
     return (
-      <div className="w-full bg-success px-4 py-3 text-white shadow-lg">
+      <div className="w-full bg-warning px-4 py-3 text-white shadow-lg">
         <div className="flex items-center justify-center gap-3">
-          <CheckCircle className="h-5 w-5 flex-shrink-0" />
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <p className="text-sm font-bold sm:text-base">
-            All good: {formatCurrency(totalClearingToday)} clearing today is
-            within normal range.
+            Alert: {formatCurrency(totalClearingToday)} clearing today. Monitor
+            your bank balance closely.
           </p>
         </div>
       </div>
