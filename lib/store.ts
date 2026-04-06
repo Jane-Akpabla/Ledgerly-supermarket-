@@ -14,7 +14,7 @@ function convertRowToCheque(row: ChequeRow): Cheque {
     chequeNo: row.cheque_no,
     supplier: row.supplier_name,
     supplierId: "", // Can be enhanced with a supplier_id foreign key
-    amount: Number(row.amount),
+    amount: Number(row.amount ?? "0"),
     bank: row.bank,
     issueDate: new Date(row.issue_date),
     clearingDate: new Date(row.clearing_date),
