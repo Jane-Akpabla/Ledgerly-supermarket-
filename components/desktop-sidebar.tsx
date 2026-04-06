@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, BookOpen, Users, Camera, Plus, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ChequeNotifications } from "@/components/cheque-notifications";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -50,8 +51,8 @@ export function DesktopSidebar() {
         })}
       </nav>
 
-      {/* Add Cheque Button */}
-      <div className="border-t border-sidebar-border p-4">
+      {/* Add Cheque Button and Notifications */}
+      <div className="border-t border-sidebar-border p-4 space-y-4">
         <Button
           asChild
           className="w-full bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
@@ -61,6 +62,9 @@ export function DesktopSidebar() {
             Add New Cheque
           </Link>
         </Button>
+
+        {/* Cheque Notifications Section */}
+        <ChequeNotifications />
       </div>
     </aside>
   );
