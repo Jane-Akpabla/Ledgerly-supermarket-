@@ -32,12 +32,18 @@ import { addCheque } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const banks = [
-  "State Bank",
-  "National Bank",
-  "City Bank",
-  "Rural Bank",
-  "Commercial Bank",
-  "United Bank",
+  "Absa Bank Ghana",
+  "GT Bank Ghana",
+  "Stanbic Bank Ghana",
+  "Ecobank Ghana",
+  "Zenith Bank Ghana",
+  "Access Bank Ghana",
+  "Standard Chartered Bank Ghana",
+  "Barclays Bank Ghana",
+  "CAL Bank Ghana",
+  "First National Bank Ghana",
+  "Fidelity Bank Ghana",
+  "Universal Merchant Bank Ghana",
 ];
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1);

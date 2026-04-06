@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   Shield,
   ArrowUpDown,
   Users,
+  PlusCircle,
 } from "lucide-react";
 import { useSuppliers } from "@/lib/store";
 import { formatCurrency, type Supplier } from "@/lib/data";
@@ -84,15 +86,27 @@ export default function SuppliersPage() {
               Manage your supplier relationships
             </p>
           </div>
-          {highPriorityCount > 0 && (
-            <Badge
-              variant="outline"
-              className="flex items-center gap-1.5 border-destructive/50 bg-destructive/10 text-destructive self-start sm:self-auto"
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {highPriorityCount > 0 && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1.5 border-destructive/50 bg-destructive/10 text-destructive self-start sm:self-auto"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {highPriorityCount} High Priority
+              </Badge>
+            )}
+            <Button
+              asChild
+              size="sm"
+              className="gap-1.5 self-start sm:self-auto"
             >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {highPriorityCount} High Priority
-            </Badge>
-          )}
+              <Link href="/add-supplier">
+                <PlusCircle className="h-4 w-4" />
+                Add New Supplier
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
