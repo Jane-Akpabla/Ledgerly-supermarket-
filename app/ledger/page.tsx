@@ -34,6 +34,7 @@ import {
   Filter,
   Plus,
   MoreVertical,
+  Trash2,
   CheckCircle2,
   Clock,
   XCircle,
@@ -45,6 +46,7 @@ import {
   useCheques,
   updateChequeStatus,
   updateChequeClearingDate,
+  deleteCheque,
 } from "@/lib/store";
 import {
   formatCurrency,
@@ -75,6 +77,15 @@ export default function LedgerPage() {
 
   const handleStatusChange = async (id: string, status: Cheque["status"]) => {
     await updateChequeStatus(id, status);
+  };
+
+  const handleDeleteCheque = async (id: string) => {
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this cheque? This action cannot be undone.",
+    );
+
+    if (!isConfirmed) return;
+    await deleteCheque(id);
   };
 
   return (
@@ -192,6 +203,7 @@ export default function LedgerPage() {
                 key={cheque.id}
                 cheque={cheque}
                 onStatusChange={handleStatusChange}
+                onDelete={handleDeleteCheque}
               />
             ))
           )}
@@ -247,9 +259,11 @@ function MiniStatCard({
 function ChequeCard({
   cheque,
   onStatusChange,
+  onDelete,
 }: {
   cheque: Cheque;
   onStatusChange: (id: string, status: Cheque["status"]) => void;
+  onDelete: (id: string) => void;
 }) {
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
@@ -379,6 +393,13 @@ function ChequeCard({
                       Reschedule
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem
+                    onClick={() => onDelete(cheque.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                    Delete Cheque
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

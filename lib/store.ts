@@ -219,6 +219,37 @@ export async function addCheque(cheque: Omit<Cheque, "id">) {
   return result;
 }
 
+export async function deleteCheque(id: string): Promise<boolean> {
+  if (!supabase) {
+    console.error("Supabase not initialized");
+    return false;
+  }
+
+  let previousCheques: Cheque[] = [];
+
+  // Optimistically remove the cheque from cache for instant UI feedback
+  await mutate(
+    "cheques",
+    (current: Cheque[] = []) => {
+      previousCheques = current;
+      return current.filter((cheque) => cheque.id !== id);
+    },
+    false,
+  );
+
+  const { error } = await supabase.from("cheques").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting cheque:", error);
+    // Roll back optimistic update on failure
+    await mutate("cheques", previousCheques, false);
+    return false;
+  }
+
+  await mutate("cheques");
+  return true;
+}
+
 export async function addSupplier(supplier: Omit<Supplier, "id">) {
   if (!supabase) {
     console.error("Supabase not initialized");
@@ -310,17 +341,48 @@ export async function updateSupplier(
   return result;
 }
 
-export async function deleteSupplier(id: string) {
+export async function deleteSupplier(
+  id: string,
+  supplierName: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     console.error("Supabase not initialized");
-    return;
+    return { success: false, error: "Supabase not initialized." };
   }
+
+  const { count, error: chequeCheckError } = await supabase
+    .from("cheques")
+    .select("id", { count: "exact", head: true })
+    .eq("supplier_name", supplierName);
+
+  if (chequeCheckError) {
+    console.error("Error checking supplier cheques:", chequeCheckError);
+    return { success: false, error: "Failed to verify supplier cheques." };
+  }
+
+  if ((count ?? 0) > 0) {
+    return {
+      success: false,
+      error: "Cannot delete supplier with active cheques.",
+    };
+  }
+
+  let previousSuppliers: Supplier[] = [];
+  await mutate(
+    "suppliers",
+    (current: Supplier[] = []) => {
+      previousSuppliers = current;
+      return current.filter((supplier) => supplier.id !== id);
+    },
+    false,
+  );
 
   const { error } = await supabase.from("suppliers").delete().eq("id", id);
 
   if (error) {
     console.error("Error deleting supplier:", error);
-    return;
+    await mutate("suppliers", previousSuppliers, false);
+    return { success: false, error: "Failed to delete supplier." };
   }
 
   await notificationsStore.addNotification({
@@ -330,4 +392,5 @@ export async function deleteSupplier(id: string) {
   });
 
   await mutate("suppliers");
+  return { success: true };
 }

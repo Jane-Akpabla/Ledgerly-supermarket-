@@ -9,7 +9,7 @@ import { DashboardStats } from "@/components/dashboard-stats";
 import { ChequeCalendar } from "@/components/cheque-calendar";
 import { SupplierPriorityTable } from "@/components/supplier-priority-table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Camera, BookOpen, Users } from "lucide-react";
+import { PlusCircle, BookOpen, Users } from "lucide-react";
 import { useCheques, useSuppliers } from "@/lib/store";
 import { getTotalSupplierDebt, getUpcomingChequeCalendar } from "@/lib/data";
 
@@ -137,14 +137,6 @@ export default function DashboardPage() {
               <Link href="/add-cheque">
                 <PlusCircle className="mr-2 h-5 w-5" />
                 Add New Cheque
-              </Link>
-            </Button>
-
-            {/* Secondary Action - Scan Ledger */}
-            <Button asChild variant="outline" size="lg" className="h-12 w-full">
-              <Link href="/scan">
-                <Camera className="mr-2 h-5 w-5" />
-                Scan Ledger Page
               </Link>
             </Button>
 

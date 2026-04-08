@@ -99,7 +99,7 @@ export function DashboardStats({
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <StatCard
-        title="Total Clearing Today"
+        title="Cheques clearing today"
         value={formatCurrency(totalClearingToday)}
         description="Due for clearance"
         icon={<CreditCard className="h-5 w-5" />}

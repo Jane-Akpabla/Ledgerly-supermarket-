@@ -34,6 +34,7 @@ import {
   deleteSupplier,
   addSupplier,
 } from "@/lib/store";
+import { toast } from "@/hooks/use-toast";
 
 import { formatCurrency, type Supplier } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,9 @@ export default function SuppliersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(
+    null,
+  );
 
   const processedSuppliers = useMemo(() => {
     let filtered = suppliers.filter((supplier) => {
@@ -208,8 +211,8 @@ export default function SuppliersPage() {
                   setEditingSupplier(supplier);
                   setIsEditDialogOpen(true);
                 }}
-                onDelete={(id) => {
-                  setDeletingId(id);
+                onDelete={(supplier) => {
+                  setDeletingSupplier(supplier);
                   setIsDeleteDialogOpen(true);
                 }}
               />
@@ -246,7 +249,7 @@ export default function SuppliersPage() {
                 variant="outline"
                 onClick={() => {
                   setIsDeleteDialogOpen(false);
-                  setDeletingId(null);
+                  setDeletingSupplier(null);
                 }}
               >
                 Cancel
@@ -254,10 +257,28 @@ export default function SuppliersPage() {
               <Button
                 variant="destructive"
                 onClick={async () => {
-                  if (deletingId) {
-                    await deleteSupplier(deletingId);
+                  if (deletingSupplier) {
+                    const result = await deleteSupplier(
+                      deletingSupplier.id,
+                      deletingSupplier.name,
+                    );
+
+                    if (!result.success) {
+                      toast({
+                        variant: "destructive",
+                        title: "Delete failed",
+                        description:
+                          result.error ||
+                          "Unable to delete supplier right now.",
+                      });
+                      return;
+                    }
+
+                    toast({
+                      title: "Supplier successfully removed",
+                    });
                     setIsDeleteDialogOpen(false);
-                    setDeletingId(null);
+                    setDeletingSupplier(null);
                   }
                 }}
               >
@@ -475,7 +496,7 @@ function SupplierCard({
 }: {
   supplier: Supplier;
   onEdit: (supplier: Supplier) => void;
-  onDelete: (id: string) => void;
+  onDelete: (supplier: Supplier) => void;
 }) {
   const isHighPriority = supplier.oldestUnpaidBillDays > 30;
 
@@ -539,7 +560,7 @@ function SupplierCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onDelete(supplier.id)}
+                  onClick={() => onDelete(supplier)}
                   className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />

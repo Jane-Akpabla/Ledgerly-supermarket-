@@ -7,7 +7,6 @@ import {
   Home,
   BookOpen,
   Users,
-  Camera,
   Plus,
   Receipt,
   Bell,
@@ -28,7 +27,6 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/ledger", label: "Cheque Ledger", icon: BookOpen },
   { href: "/suppliers", label: "Suppliers", icon: Users },
-  { href: "/scan", label: "Scan Ledger", icon: Camera },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -79,7 +77,7 @@ export function DesktopSidebar() {
 
   return (
     <>
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
           {logoUrl ? (
