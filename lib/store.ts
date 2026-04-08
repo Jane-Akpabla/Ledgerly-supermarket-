@@ -82,6 +82,7 @@ const fetchSuppliers = async (): Promise<Supplier[]> => {
 export function useCheques() {
   const { data, error, isLoading } = useSWR("cheques", fetchCheques, {
     revalidateOnFocus: true,
+    revalidateOnMount: true,
     dedupingInterval: 0,
   });
   return {
