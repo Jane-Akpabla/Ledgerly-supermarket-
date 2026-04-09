@@ -90,7 +90,7 @@ export default function LedgerPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8">
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden p-4 md:p-6 lg:p-8">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -110,8 +110,8 @@ export default function LedgerPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search by cheque no, supplier, or bank..."
@@ -120,7 +120,8 @@ export default function LedgerPage() {
               className="pl-9"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="w-full min-w-0 sm:w-auto sm:shrink-0">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] scrollbar-hide">
             <FilterButton
               active={statusFilter === "all"}
               onClick={() => setStatusFilter("all")}
@@ -155,6 +156,7 @@ export default function LedgerPage() {
               <Clock className="mr-1 h-3 w-3" />
               Stopped
             </FilterButton>
+            </div>
           </div>
         </div>
 
@@ -224,9 +226,10 @@ function FilterButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+        "flex shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors",
         active
           ? "bg-primary text-primary-foreground"
           : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
