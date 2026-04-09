@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,19 +61,55 @@ type StatusFilter = "all" | "pending" | "cleared" | "bounced" | "stopped";
 
 export default function LedgerPage() {
   const { cheques, isLoading } = useCheques();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const normalizedStatusFilter = statusFilter.toLowerCase();
+  const clearingParam = searchParams.get("clearing");
+
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    const isValidStatus =
+      statusParam === "all" ||
+      statusParam === "pending" ||
+      statusParam === "cleared" ||
+      statusParam === "bounced" ||
+      statusParam === "stopped";
+
+    setStatusFilter(isValidStatus ? (statusParam as StatusFilter) : "all");
+  }, [searchParams]);
+
   const filteredCheques = cheques.filter((cheque) => {
+    const chequeNo = String(cheque.chequeNo ?? "").toLowerCase();
+    const supplierName = String(cheque.supplier ?? "").toLowerCase();
+    const chequeStatus = String(cheque.status ?? "").trim().toLowerCase();
+
     const matchesSearch =
-      cheque.chequeNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cheque.supplier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cheque.bank.toLowerCase().includes(searchQuery.toLowerCase());
+      normalizedSearchQuery.length === 0 ||
+      chequeNo.includes(normalizedSearchQuery) ||
+      supplierName.includes(normalizedSearchQuery);
 
     const matchesStatus =
-      statusFilter === "all" || cheque.status === statusFilter;
+      normalizedStatusFilter === "all" ||
+      chequeStatus === normalizedStatusFilter;
 
-    return matchesSearch && matchesStatus;
+    const chequeClearingDate = new Date(cheque.clearingDate);
+    chequeClearingDate.setHours(0, 0, 0, 0);
+
+    const targetDate = new Date();
+    targetDate.setHours(0, 0, 0, 0);
+    if (clearingParam === "tomorrow") {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    const matchesDate =
+      clearingParam !== "today" && clearingParam !== "tomorrow"
+        ? true
+        : chequeClearingDate.getTime() === targetDate.getTime();
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const handleStatusChange = async (id: string, status: Cheque["status"]) => {
@@ -166,23 +203,50 @@ export default function LedgerPage() {
             label="Pending"
             value={cheques.filter((c) => c.status === "pending").length}
             color="text-warning"
+            active={statusFilter === "pending"}
+            onClick={() =>
+              setStatusFilter((prev) => (prev === "pending" ? "all" : "pending"))
+            }
           />
           <MiniStatCard
             label="Cleared"
             value={cheques.filter((c) => c.status === "cleared").length}
             color="text-success"
+            active={statusFilter === "cleared"}
+            onClick={() =>
+              setStatusFilter((prev) => (prev === "cleared" ? "all" : "cleared"))
+            }
           />
           <MiniStatCard
             label="Bounced"
             value={cheques.filter((c) => c.status === "bounced").length}
             color="text-destructive"
+            active={statusFilter === "bounced"}
+            onClick={() =>
+              setStatusFilter((prev) => (prev === "bounced" ? "all" : "bounced"))
+            }
           />
           <MiniStatCard
             label="Stopped"
             value={cheques.filter((c) => c.status === "stopped").length}
             color="text-muted-foreground"
+            active={statusFilter === "stopped"}
+            onClick={() =>
+              setStatusFilter((prev) => (prev === "stopped" ? "all" : "stopped"))
+            }
           />
         </div>
+        {statusFilter !== "all" && (
+          <div className="-mt-3 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setStatusFilter("all")}
+            >
+              Clear filter
+            </Button>
+          </div>
+        )}
 
         {/* Cheque List */}
         <div className="flex flex-col gap-3">
@@ -192,11 +256,17 @@ export default function LedgerPage() {
             </div>
           ) : filteredCheques.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <CreditCard className="h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                  No cheques found
+                  No cheques found. Add your first one to get started!
                 </p>
+                <Button asChild className="mt-4">
+                  <Link href="/add-cheque">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Cheque
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -244,18 +314,29 @@ function MiniStatCard({
   label,
   value,
   color,
+  active = false,
+  onClick,
 }: {
   label: string;
   value: number;
   color: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center py-3">
+    <button type="button" onClick={onClick} className="cursor-pointer text-left">
+      <Card
+        className={cn(
+          "transition-all",
+          active && "border-2 border-primary bg-primary/5 shadow-sm",
+        )}
+      >
+        <CardContent className="flex flex-col items-center py-3">
         <span className={cn("text-2xl font-bold", color)}>{value}</span>
         <span className="text-xs text-muted-foreground">{label}</span>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </button>
   );
 }
 

@@ -195,11 +195,18 @@ export default function SuppliersPage() {
             </div>
           ) : processedSuppliers.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                  No suppliers found
+                  No suppliers found. Add your first one to get started!
                 </p>
+                <Button
+                  onClick={() => setIsAddDialogOpen(true)}
+                  className="mt-4 gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add First Supplier
+                </Button>
               </CardContent>
             </Card>
           ) : (

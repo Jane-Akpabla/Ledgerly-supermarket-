@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, BookOpen, Users, Settings } from "lucide-react";
+import { Home, BookOpen, Users, FileText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/ledger", label: "Ledger", icon: BookOpen },
   { href: "/suppliers", label: "Suppliers", icon: Users },
+  { href: "/reports", label: "Reports", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

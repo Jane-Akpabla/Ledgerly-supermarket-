@@ -11,69 +11,22 @@ import { SupplierPriorityTable } from "@/components/supplier-priority-table";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Users } from "lucide-react";
 import { useCheques, useSuppliers } from "@/lib/store";
-import { getTotalSupplierDebt, getUpcomingChequeCalendar } from "@/lib/data";
+import {
+  getChequesClearingTomorrowCount,
+  getTotalClearingToday,
+  getTotalClearingTomorrow,
+  getTotalSupplierDebt,
+  getUpcomingChequeCalendar,
+} from "@/lib/data";
 
 export default function DashboardPage() {
   const { cheques, isLoading: chequesLoading } = useCheques();
   const { suppliers, isLoading: suppliersLoading } = useSuppliers();
 
-  // Helper to get next working day (Mon-Fri)
-  const getNextWorkingDay = (): Date => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    const day = date.getDay();
-
-    // If Saturday (6), add 2 days to get Monday
-    // If Sunday (0), add 1 day to get Monday
-    if (day === 6) {
-      date.setDate(date.getDate() + 2);
-    } else if (day === 0) {
-      date.setDate(date.getDate() + 1);
-    }
-    return date;
-  };
-
-  // For display: "Today" means next working day if weekend
-  const displayDate = getNextWorkingDay();
-
-  // Calculate total clearing on next working day (for stats display)
-  const totalClearingToday = cheques
-    .filter((c) => {
-      const clearDate = new Date(c.clearingDate);
-      clearDate.setHours(0, 0, 0, 0);
-      return (
-        clearDate.getTime() === displayDate.getTime() && c.status === "pending"
-      );
-    })
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  // Calculate total clearing in next 24 hours (today + tomorrow) for banner
-  const totalClearingNext24Hours = cheques
-    .filter((c) => {
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const clearDate = new Date(c.clearingDate);
-      clearDate.setHours(0, 0, 0, 0);
-
-      return (
-        (clearDate.getTime() === now.getTime() ||
-          clearDate.getTime() === tomorrow.getTime()) &&
-        c.status === "pending"
-      );
-    })
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const chequesClearingTomorrow = cheques.filter((c) => {
-    const tomorrow = new Date();
-    tomorrow.setHours(0, 0, 0, 0);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const clearDate = new Date(c.clearingDate);
-    clearDate.setHours(0, 0, 0, 0);
-    return clearDate.getTime() === tomorrow.getTime() && c.status === "pending";
-  }).length;
+  // Single source of truth for "clearing today" across dashboard components.
+  const totalClearingToday = getTotalClearingToday(cheques);
+  const totalClearingTomorrow = getTotalClearingTomorrow(cheques);
+  const chequesClearingTomorrowCount = getChequesClearingTomorrowCount(cheques);
 
   const totalSupplierDebt = getTotalSupplierDebt(suppliers);
   const calendar = getUpcomingChequeCalendar(cheques);
@@ -92,7 +45,7 @@ export default function DashboardPage() {
     <DashboardLayout>
       {/* Critical Warning Banner - Always at very top */}
       <CashCheckWarning
-        totalClearingToday={totalClearingNext24Hours}
+        totalClearingToday={totalClearingToday}
         averageDailySales={50000}
       />
 
@@ -110,7 +63,8 @@ export default function DashboardPage() {
         {/* Stats Overview */}
         <DashboardStats
           totalClearingToday={totalClearingToday}
-          chequesClearingTomorrow={chequesClearingTomorrow}
+          totalClearingTomorrow={totalClearingTomorrow}
+          chequesClearingTomorrowCount={chequesClearingTomorrowCount}
           totalSupplierDebt={totalSupplierDebt}
         />
 
@@ -141,7 +95,7 @@ export default function DashboardPage() {
             </Button>
 
             {/* Additional Quick Links */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <QuickActionCard
                 title="View Ledger"
                 description="Check all cheques"

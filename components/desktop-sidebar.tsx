@@ -7,6 +7,7 @@ import {
   Home,
   BookOpen,
   Users,
+  FileText,
   Plus,
   Receipt,
   Bell,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/ledger", label: "Cheque Ledger", icon: BookOpen },
   { href: "/suppliers", label: "Suppliers", icon: Users },
+  { href: "/reports", label: "Daily Reports", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

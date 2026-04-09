@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, CreditCard, Building2, CalendarClock } from "lucide-react";
 import { formatCurrency } from "@/lib/data";
@@ -14,6 +15,7 @@ interface StatCardProps {
   trendValue?: string;
   highlighted?: boolean;
   variant?: "default" | "success" | "warning" | "destructive";
+  href?: string;
 }
 
 export function StatCard({
@@ -25,11 +27,13 @@ export function StatCard({
   trendValue,
   highlighted = false,
   variant = "default",
+  href,
 }: StatCardProps) {
-  return (
+  const card = (
     <Card
       className={cn(
-        "relative overflow-hidden transition-all duration-200 hover:shadow-md",
+        "relative overflow-hidden transition-all duration-200",
+        href && "cursor-pointer hover:scale-[1.01] hover:shadow-md",
         highlighted && "ring-2 ring-primary shadow-lg",
         variant === "success" && "border-success/50",
         variant === "warning" && "border-warning/50",
@@ -83,17 +87,29 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (!href) {
+    return card;
+  }
+
+  return (
+    <Link href={href} className="block">
+      {card}
+    </Link>
+  );
 }
 
 interface DashboardStatsProps {
   totalClearingToday: number;
-  chequesClearingTomorrow: number;
+  totalClearingTomorrow: number;
+  chequesClearingTomorrowCount: number;
   totalSupplierDebt: number;
 }
 
 export function DashboardStats({
   totalClearingToday,
-  chequesClearingTomorrow,
+  totalClearingTomorrow,
+  chequesClearingTomorrowCount,
   totalSupplierDebt,
 }: DashboardStatsProps) {
   return (
@@ -105,13 +121,15 @@ export function DashboardStats({
         icon={<CreditCard className="h-5 w-5" />}
         highlighted
         variant="default"
+        href="/ledger?status=pending&clearing=today"
       />
       <StatCard
         title="Cheques Clearing Tomorrow"
-        value={chequesClearingTomorrow}
-        description="Pending cheques"
+        value={formatCurrency(totalClearingTomorrow)}
+        description={`${chequesClearingTomorrowCount} Pending cheques`}
         icon={<CalendarClock className="h-5 w-5" />}
         variant="success"
+        href="/ledger?status=pending&clearing=tomorrow"
       />
       <StatCard
         title="Total Supplier Debt"
@@ -119,6 +137,7 @@ export function DashboardStats({
         description="Outstanding balance"
         icon={<Building2 className="h-5 w-5" />}
         variant="warning"
+        href="/suppliers"
       />
     </div>
   );
