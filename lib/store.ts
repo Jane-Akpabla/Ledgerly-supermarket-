@@ -341,6 +341,22 @@ export async function updateSupplier(
   return result;
 }
 
+export async function deleteReport(id: string): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    console.error("Supabase not initialized");
+    return { success: false, error: "Supabase not initialized." };
+  }
+
+  const { error } = await supabase.from("daily_reports").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting report:", error);
+    return { success: false, error: "Failed to delete report." };
+  }
+
+  return { success: true };
+}
+
 export async function deleteSupplier(
   id: string,
   supplierName: string,
